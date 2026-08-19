@@ -1,0 +1,12 @@
+# Secretos: nunca versionar
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Base de datos local (v2)
+*.db
+*.sqlite3
