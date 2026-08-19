@@ -1,6 +1,6 @@
 {
   "proveedor_por_defecto": "mammouth",
-  "timeout_segundos": 60,
+  "timeout_segundos": 300,
   "max_tokens": 4096,
   "instruccion_sistema": "Eres un asistente util. Responde de forma clara y concisa en el idioma en que te escriban.",
   "proveedores": {
@@ -19,7 +19,7 @@
     },
     "gemini": {
       "tipo": "gemini",
-      "modelo": "gemini-2.5-pro",
+      "modelo": "gemini-3.5-flash",
       "url": "https://generativelanguage.googleapis.com/v1beta",
       "variable_api_key": "GEMINI_API_KEY"
     },

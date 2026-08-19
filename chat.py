@@ -9,15 +9,15 @@ de modo que el modelo recuerda lo hablado. Escribe /ayuda para ver los comandos.
 import sys
 
 from conexion import (
-    ErrorLLM,
-    cargar_config,
-    cargar_env,
-    listar_proveedores,
-    obtener_proveedor,
-    tiene_api_key,
+    LLMError,
+    load_config,
+    load_env,
+    list_providers,
+    get_provider,
+    has_api_key,
 )
 
-AYUDA = """
+HELP = """
 Comandos disponibles:
   /ayuda                 muestra esta ayuda
   /estado                proveedor y modelo activos, y turnos en memoria
@@ -31,145 +31,145 @@ Cualquier otro texto se envia al modelo.
 """
 
 
-def imprimir_respuesta(proveedor, texto):
-    print(f"\n{proveedor.nombre}> {texto}\n")
+def print_response(provider, text):
+    print(f"\n{provider.name}> {text}\n")
 
 
 def main():
-    cargar_env()
+    load_env()
 
     try:
-        config = cargar_config()
-    except ErrorLLM as exc:
+        config = load_config()
+    except LLMError as exc:
         print(f"Error de configuracion: {exc}")
         return 1
 
     # Si el proveedor por defecto no se puede usar (por ejemplo, falta su clave),
     # se arranca igualmente sin proveedor activo: asi se puede cambiar a otro con
     # /proveedor en vez de tener que editar config.json y volver a lanzar.
-    aviso_inicio = ""
+    startup_warning = ""
     try:
-        proveedor = obtener_proveedor(config["proveedor_por_defecto"], config)
-    except ErrorLLM as exc:
-        proveedor = None
-        aviso_inicio = str(exc)
+        provider = get_provider(config["proveedor_por_defecto"], config)
+    except LLMError as exc:
+        provider = None
+        startup_warning = str(exc)
 
-    sistema = config.get("instruccion_sistema")
-    historial = []
+    system = config.get("instruccion_sistema")
+    history = []
 
     print("=" * 60)
     print("  aicoapi - cliente de consola para APIs de LLM")
-    if proveedor:
-        print(f"  Proveedor activo: {proveedor}")
+    if provider:
+        print(f"  Proveedor activo: {provider}")
     else:
         print("  Sin proveedor activo")
     print("=" * 60)
 
-    if aviso_inicio:
-        print(f"\nAviso: {aviso_inicio}")
-        con_clave = [n for n in listar_proveedores(config) if tiene_api_key(n, config)]
-        if con_clave:
-            print(f"Proveedores con clave disponible: {', '.join(con_clave)}")
+    if startup_warning:
+        print(f"\nAviso: {startup_warning}")
+        with_key = [n for n in list_providers(config) if has_api_key(n, config)]
+        if with_key:
+            print(f"Proveedores con clave disponible: {', '.join(with_key)}")
             print("Elige uno con:  /proveedor <nombre>")
         else:
             print("Ningun proveedor tiene su clave definida. Revisa el archivo .env")
 
-    print(AYUDA)
+    print(HELP)
 
     while True:
         try:
-            entrada = input("tu> ").strip()
+            user_input = input("tu> ").strip()
         except (EOFError, KeyboardInterrupt):
             print("\nHasta luego.")
             return 0
 
-        if not entrada:
+        if not user_input:
             continue
 
         # --- Comandos -----------------------------------------------------
-        if entrada.startswith("/"):
-            partes = entrada.split(maxsplit=1)
-            comando = partes[0].lower()
-            argumento = partes[1].strip() if len(partes) > 1 else ""
+        if user_input.startswith("/"):
+            parts = user_input.split(maxsplit=1)
+            command = parts[0].lower()
+            argument = parts[1].strip() if len(parts) > 1 else ""
 
-            if comando == "/salir":
+            if command == "/salir":
                 print("Hasta luego.")
                 return 0
 
-            if comando == "/ayuda":
-                print(AYUDA)
+            if command == "/ayuda":
+                print(HELP)
                 continue
 
-            if comando == "/estado":
-                if proveedor:
+            if command == "/estado":
+                if provider:
                     print(
-                        f"Proveedor: {proveedor.nombre} | Modelo: {proveedor.modelo} | "
-                        f"Mensajes en historial: {len(historial)}"
+                        f"Proveedor: {provider.name} | Modelo: {provider.model} | "
+                        f"Mensajes en historial: {len(history)}"
                     )
                 else:
                     print(
                         "Sin proveedor activo. Elige uno con /proveedor <nombre> | "
-                        f"Mensajes en historial: {len(historial)}"
+                        f"Mensajes en historial: {len(history)}"
                     )
                 continue
 
-            if comando == "/proveedores":
-                activo = proveedor.nombre if proveedor else None
-                for nombre in listar_proveedores(config):
-                    if nombre == activo:
-                        marca = " (activo)"
-                    elif not tiene_api_key(nombre, config):
-                        marca = f" (sin clave: falta {config['proveedores'][nombre]['variable_api_key']})"
+            if command == "/proveedores":
+                active = provider.name if provider else None
+                for name in list_providers(config):
+                    if name == active:
+                        mark = " (activo)"
+                    elif not has_api_key(name, config):
+                        mark = f" (sin clave: falta {config['proveedores'][name]['variable_api_key']})"
                     else:
-                        marca = ""
-                    print(f"  - {nombre}: {config['proveedores'][nombre]['modelo']}{marca}")
+                        mark = ""
+                    print(f"  - {name}: {config['proveedores'][name]['modelo']}{mark}")
                 continue
 
-            if comando == "/proveedor":
-                if not argumento:
+            if command == "/proveedor":
+                if not argument:
                     print("Uso: /proveedor <nombre>. Ver /proveedores")
                     continue
                 try:
-                    proveedor = obtener_proveedor(argumento, config)
-                except ErrorLLM as exc:
+                    provider = get_provider(argument, config)
+                except LLMError as exc:
                     print(f"Error: {exc}")
                     continue
-                historial.clear()
-                print(f"Proveedor cambiado a {proveedor}. Historial limpiado.")
+                history.clear()
+                print(f"Proveedor cambiado a {provider}. Historial limpiado.")
                 continue
 
-            if comando == "/modelo":
-                if not proveedor:
+            if command == "/modelo":
+                if not provider:
                     print("No hay proveedor activo. Usa /proveedor <nombre> primero.")
                     continue
-                if not argumento:
+                if not argument:
                     print("Uso: /modelo <nombre>")
                     continue
-                proveedor.modelo = argumento
-                print(f"Modelo cambiado a {argumento} en el proveedor {proveedor.nombre}.")
+                provider.model = argument
+                print(f"Modelo cambiado a {argument} en el proveedor {provider.name}.")
                 continue
 
-            if comando == "/limpiar":
-                historial.clear()
+            if command == "/limpiar":
+                history.clear()
                 print("Historial limpiado.")
                 continue
 
-            print(f"Comando desconocido: {comando}. Escribe /ayuda")
+            print(f"Comando desconocido: {command}. Escribe /ayuda")
             continue
 
         # --- Turno normal -------------------------------------------------
-        if not proveedor:
+        if not provider:
             print("No hay proveedor activo. Usa /proveedor <nombre> (ver /proveedores).\n")
             continue
 
         # Se envia el historial mas el mensaje nuevo, pero este solo se guarda
         # si la llamada tiene exito: asi el historial nunca queda desalineado.
-        turno = historial + [{"rol": "usuario", "texto": entrada}]
+        turn = history + [{"rol": "usuario", "texto": user_input}]
 
         print("...pensando...", end="", flush=True)
         try:
-            respuesta = proveedor.enviar(turno, sistema=sistema)
-        except ErrorLLM as exc:
+            response = provider.send(turn, system=system)
+        except LLMError as exc:
             print("\r" + " " * 15 + "\r", end="")
             print(f"Error: {exc}\n")
             continue
@@ -179,9 +179,9 @@ def main():
             continue
         print("\r" + " " * 15 + "\r", end="")
 
-        historial.append({"rol": "usuario", "texto": entrada})
-        historial.append({"rol": "asistente", "texto": respuesta})
-        imprimir_respuesta(proveedor, respuesta)
+        history.append({"rol": "usuario", "texto": user_input})
+        history.append({"rol": "asistente", "texto": response})
+        print_response(provider, response)
 
 
 if __name__ == "__main__":
