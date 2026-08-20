@@ -17,7 +17,7 @@ Paquetes instalados en el sistema: `pip`, `pipx`, `click`, `colorama`, `packagin
 1. **Sin dependencias externas.** Se usa `urllib.request` + `json` de la stdlib.
    Las cuatro APIs son REST/HTTP planas, y Python 3.14 es muy reciente (riesgo de
    que los SDKs oficiales aun no tengan wheels). Si mas adelante conviene migrar a
-   los SDKs, la interfaz `Proveedor.enviar()` no cambia.
+   los SDKs, la interfaz `Provider.send()` no cambia.
 2. **`config.json` versionable + `.env` para las claves.** Separa secretos de
    configuracion desde el primer dia. Las variables del entorno del sistema tienen
    prioridad sobre el archivo `.env`.
@@ -41,10 +41,10 @@ config.json + .env
 El historial viaja siempre asi entre las dos capas:
 
 ```python
-[{"rol": "usuario" | "asistente", "texto": "..."}]
+[{"role": "user" | "assistant", "text": "..."}]
 ```
 
-Cada subclase de `Proveedor` lo traduce al formato de su API. Añadir un proveedor
+Cada subclase de `Provider` lo traduce al formato de su API. Añadir un proveedor
 nuevo no obliga a tocar `chat.py`.
 
 ### Diferencias entre APIs que resuelve cada adaptador
@@ -60,12 +60,12 @@ nuevo no obliga a tocar `chat.py`.
 
 ### Manejo de errores
 
-Todo fallo de la capa de conexion sale como `ErrorLLM` con mensaje legible: falta
+Todo fallo de la capa de conexion sale como `LLMError` con mensaje legible: falta
 de configuracion, API key ausente, error HTTP (incluyendo el cuerpo de la
 respuesta, que es donde los proveedores explican el fallo real), timeout, fallo de
 red o respuesta con forma inesperada.
 
-En `chat.py` un `ErrorLLM` se imprime y **el bucle continua**: no se pierde la
+En `chat.py` un `LLMError` se imprime y **el bucle continua**: no se pierde la
 conversacion. Si la llamada falla, el turno del usuario **no** se añade al
 historial, para que no quede desalineado.
 

@@ -74,21 +74,21 @@ programa el historial se pierde (la persistencia en SQLite es la v2).
 
 Todo se ajusta en `config.json` sin tocar codigo:
 
-- `proveedor_por_defecto`: con cual arranca la consola.
-- `timeout_segundos`, `max_tokens`, `instruccion_sistema`: globales.
-- `proveedores.<nombre>`:
-  - `tipo`: formato de API (`openai`, `anthropic`, `gemini`). Es lo que decide el
+- `default_provider`: con cual arranca la consola.
+- `timeout_seconds`, `max_tokens`, `system_prompt`: globales.
+- `providers.<nombre>`:
+  - `type`: formato de API (`openai`, `anthropic`, `gemini`). Es lo que decide el
     adaptador, no el nombre. Mammouth usa el tipo `openai` porque su API es
     compatible con ese formato.
-  - `modelo`, `url`, `variable_api_key`: modelo, endpoint y nombre de la variable
+  - `model`, `url`, `api_key_env`: modelo, endpoint y nombre de la variable
     de entorno donde se busca la clave.
 
 Para añadir un proveedor nuevo compatible con OpenAI basta con añadir una entrada
-mas con `"tipo": "openai"` y su URL: no hay que escribir codigo.
+mas con `"type": "openai"` y su URL: no hay que escribir codigo.
 
 ## Como añadir un tipo de API nuevo
 
-Crear una subclase de `Proveedor` en `conexion.py` que implemente
-`enviar(mensajes, sistema) -> str`, y registrarla en el diccionario `TIPOS`.
+Crear una subclase de `Provider` en `conexion.py` que implemente
+`send(messages, system) -> str`, y registrarla en el diccionario `TYPES`.
 El historial llega siempre en el formato interno neutro
-`[{"rol": "usuario"|"asistente", "texto": "..."}]`.
+`[{"role": "user"|"assistant", "text": "..."}]`.
