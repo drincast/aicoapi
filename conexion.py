@@ -68,21 +68,21 @@ def load_config(path=CONFIG_PATH):
     if not isinstance(config, dict):
         raise LLMError(f"El contenido de {path} debe ser un objeto JSON.")
 
-    providers = config.get("proveedores")
+    providers = config.get("providers")
     if not isinstance(providers, dict) or not providers:
-        raise LLMError(f"Falta la seccion 'proveedores' en {path} o esta vacia.")
+        raise LLMError(f"Falta la seccion 'providers' en {path} o esta vacia.")
 
-    default_provider = config.get("proveedor_por_defecto")
+    default_provider = config.get("default_provider")
     if default_provider not in providers:
         raise LLMError(
-            f"'proveedor_por_defecto' ({default_provider!r}) no existe en 'proveedores'. "
+            f"'default_provider' ({default_provider!r}) no existe en 'providers'. "
             f"Disponibles: {', '.join(sorted(providers))}"
         )
 
     for name, data in providers.items():
         if not isinstance(data, dict):
             raise LLMError(f"La configuracion del proveedor '{name}' debe ser un objeto.")
-        for field in ("tipo", "modelo", "url", "variable_api_key"):
+        for field in ("type", "model", "url", "api_key_env"):
             if not data.get(field):
                 raise LLMError(f"Al proveedor '{name}' le falta el campo '{field}' en {path}.")
 
@@ -91,15 +91,15 @@ def load_config(path=CONFIG_PATH):
 
 def list_providers(config):
     """Nombres de proveedores configurados, ordenados."""
-    return sorted(config["proveedores"])
+    return sorted(config["providers"])
 
 
 def has_api_key(name, config):
     """True si la variable de entorno con la clave de ese proveedor esta definida."""
-    data = config["proveedores"].get(name)
+    data = config["providers"].get(name)
     if not data:
         return False
-    return bool(os.environ.get(data.get("variable_api_key", "")))
+    return bool(os.environ.get(data.get("api_key_env", "")))
 
 
 # ---------------------------------------------------------------------------
@@ -149,7 +149,7 @@ def _json_request(url, headers, body, timeout):
 class Provider:
     """Base comun. El historial se recibe siempre en formato interno neutro:
 
-        [{"rol": "usuario" | "asistente", "texto": "..."}]
+        [{"role": "user" | "assistant", "text": "..."}]
 
     Cada subclase lo traduce al formato que espera su API.
     """
@@ -160,7 +160,7 @@ class Provider:
         self.api_key = api_key
         self.timeout = timeout
         self.max_tokens = max_tokens
-        self.model = provider_config["modelo"]
+        self.model = provider_config["model"]
         self.url = provider_config["url"]
 
     def send(self, messages, system=None):
@@ -178,12 +178,11 @@ class OpenAIProvider(Provider):
         if system:
             history.append({"role": "system", "content": system})
         for message in messages:
-            role = "assistant" if message["rol"] == "asistente" else "user"
-            history.append({"role": role, "content": message["texto"]})
+            history.append({"role": message["role"], "content": message["text"]})
 
         # Los modelos recientes de OpenAI usan 'max_completion_tokens'; las APIs
         # compatibles mas antiguas (y Mammouth) esperan 'max_tokens'. Configurable.
-        tokens_field = self.config.get("campo_max_tokens", "max_completion_tokens")
+        tokens_field = self.config.get("max_tokens_field", "max_completion_tokens")
         body = {
             "model": self.model,
             "messages": history,
@@ -205,10 +204,7 @@ class AnthropicProvider(Provider):
 
     def send(self, messages, system=None):
         history = [
-            {
-                "role": "assistant" if m["rol"] == "asistente" else "user",
-                "content": m["texto"],
-            }
+            {"role": m["role"], "content": m["text"]}
             for m in messages
         ]
 
@@ -222,7 +218,7 @@ class AnthropicProvider(Provider):
 
         headers = {
             "x-api-key": self.api_key,
-            "anthropic-version": self.config.get("version_api", "2023-06-01"),
+            "anthropic-version": self.config.get("api_version", "2023-06-01"),
         }
         response = _json_request(self.url, headers, body, self.timeout)
 
@@ -243,8 +239,8 @@ class GeminiProvider(Provider):
     def send(self, messages, system=None):
         contents = [
             {
-                "role": "model" if m["rol"] == "asistente" else "user",
-                "parts": [{"text": m["texto"]}],
+                "role": "model" if m["role"] == "assistant" else "user",
+                "parts": [{"text": m["text"]}],
             }
             for m in messages
         ]
@@ -281,7 +277,7 @@ TYPES = {
 
 def get_provider(name, config):
     """Construye el proveedor pedido a partir de la configuracion cargada."""
-    providers = config["proveedores"]
+    providers = config["providers"]
     if name not in providers:
         raise LLMError(
             f"El proveedor '{name}' no esta configurado. "
@@ -289,14 +285,14 @@ def get_provider(name, config):
         )
 
     data = providers[name]
-    type_ = data["tipo"]
+    type_ = data["type"]
     if type_ not in TYPES:
         raise LLMError(
             f"Tipo de API desconocido '{type_}' en el proveedor '{name}'. "
             f"Tipos validos: {', '.join(sorted(TYPES))}"
         )
 
-    variable = data["variable_api_key"]
+    variable = data["api_key_env"]
     api_key = os.environ.get(variable)
     if not api_key:
         raise LLMError(
@@ -308,6 +304,6 @@ def get_provider(name, config):
         name=name,
         provider_config=data,
         api_key=api_key,
-        timeout=config.get("timeout_segundos", 60),
+        timeout=config.get("timeout_seconds", 60),
         max_tokens=config.get("max_tokens", 4096),
     )

@@ -49,12 +49,12 @@ def main():
     # /proveedor en vez de tener que editar config.json y volver a lanzar.
     startup_warning = ""
     try:
-        provider = get_provider(config["proveedor_por_defecto"], config)
+        provider = get_provider(config["default_provider"], config)
     except LLMError as exc:
         provider = None
         startup_warning = str(exc)
 
-    system = config.get("instruccion_sistema")
+    system = config.get("system_prompt")
     history = []
 
     print("=" * 60)
@@ -119,10 +119,10 @@ def main():
                     if name == active:
                         mark = " (activo)"
                     elif not has_api_key(name, config):
-                        mark = f" (sin clave: falta {config['proveedores'][name]['variable_api_key']})"
+                        mark = f" (sin clave: falta {config['providers'][name]['api_key_env']})"
                     else:
                         mark = ""
-                    print(f"  - {name}: {config['proveedores'][name]['modelo']}{mark}")
+                    print(f"  - {name}: {config['providers'][name]['model']}{mark}")
                 continue
 
             if command == "/proveedor":
@@ -164,7 +164,7 @@ def main():
 
         # Se envia el historial mas el mensaje nuevo, pero este solo se guarda
         # si la llamada tiene exito: asi el historial nunca queda desalineado.
-        turn = history + [{"rol": "usuario", "texto": user_input}]
+        turn = history + [{"role": "user", "text": user_input}]
 
         print("...pensando...", end="", flush=True)
         try:
@@ -179,8 +179,8 @@ def main():
             continue
         print("\r" + " " * 15 + "\r", end="")
 
-        history.append({"rol": "usuario", "texto": user_input})
-        history.append({"rol": "asistente", "texto": response})
+        history.append({"role": "user", "text": user_input})
+        history.append({"role": "assistant", "text": response})
         print_response(provider, response)
 
 
