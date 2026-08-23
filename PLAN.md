@@ -30,7 +30,7 @@ Paquetes instalados en el sistema: `pip`, `pipx`, `click`, `colorama`, `packagin
 chat.py       UI: ciclo de entrada, comandos, historial. Es el unico que imprime.
    |
    v
-conexion.py   Config + HTTP + traduccion de formatos. No imprime nada.
+connection.py Config + HTTP + traduccion de formatos. No imprime nada.
    |
    v
 config.json + .env

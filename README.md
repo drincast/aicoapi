@@ -28,31 +28,31 @@ Probado con Python 3.14.5.
 
 | Comando | Que hace |
 | --- | --- |
-| `/ayuda` | Muestra la ayuda |
-| `/estado` | Proveedor y modelo activos, y turnos en memoria |
-| `/proveedores` | Lista los proveedores configurados |
-| `/proveedor <nombre>` | Cambia de proveedor (limpia el historial) |
-| `/modelo <nombre>` | Cambia el modelo del proveedor actual |
-| `/limpiar` | Borra el historial de la conversacion |
-| `/salir` | Termina el programa |
+| `/help` | Muestra la ayuda |
+| `/status` | Proveedor y modelo activos, y turnos en memoria |
+| `/providers` | Lista los proveedores configurados |
+| `/provider <nombre>` | Cambia de proveedor (limpia el historial) |
+| `/model <nombre>` | Cambia el modelo del proveedor actual |
+| `/clear` | Borra el historial de la conversacion |
+| `/exit`, `/bye` | Termina el programa |
 
 Ejemplo de invocacion y uso de los comandos:
 
 ```
 $ python chat.py
 
-tu> /proveedores
-tu> /proveedor mammouth
-tu> /modelo kimi-k2.6
+tu> /providers
+tu> /provider mammouth
+tu> /model kimi-k2.6
 tu> Hola, como estas?
-tu> /estado
-tu> /limpiar
-tu> /salir
+tu> /status
+tu> /clear
+tu> /exit
 ``` 
 
 Si el proveedor por defecto no tiene su clave definida, el programa **arranca
 igualmente** sin proveedor activo: avisa, lista los que si tienen clave y puedes
-elegir uno con `/proveedor <nombre>`. En `/proveedores` se marca cuales no tienen
+elegir uno con `/provider <nombre>`. En `/providers` se marca cuales no tienen
 clave y que variable les falta.
 
 Cualquier otro texto se envia al modelo. El historial se mantiene en memoria y
@@ -63,8 +63,9 @@ programa el historial se pierde (la persistencia en SQLite es la v2).
 
 | Archivo | Contenido |
 | --- | --- |
-| `conexion.py` | Configuracion, HTTP y traduccion al formato de cada API. No imprime nada. |
+| `connection.py` | Configuracion, HTTP y traduccion al formato de cada API. No imprime nada. |
 | `chat.py` | Interfaz de consola: ciclo de entrada, comandos e historial. |
+| `farewells.py` | Mensajes de despedida aleatorios y reutilizables. |
 | `config.json` | Proveedores, modelos, URLs, timeout y `max_tokens`. Sin secretos, versionable. |
 | `.env` | Las API keys. Local, ignorado por git. |
 | `PLAN.md` | Diseño del proyecto. |
@@ -88,7 +89,7 @@ mas con `"type": "openai"` y su URL: no hay que escribir codigo.
 
 ## Como añadir un tipo de API nuevo
 
-Crear una subclase de `Provider` en `conexion.py` que implemente
+Crear una subclase de `Provider` en `connection.py` que implemente
 `send(messages, system) -> str`, y registrarla en el diccionario `TYPES`.
 El historial llega siempre en el formato interno neutro
 `[{"role": "user"|"assistant", "text": "..."}]`.
